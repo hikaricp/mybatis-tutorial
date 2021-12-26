@@ -1,0 +1,150 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.eaay.simple.mapper.SysUserMapper">
+    <resultMap id="userMap" type="cn.eaay.simple.model.SysUser">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+        <result column="user_password" property="userPassword" jdbcType="VARCHAR"/>
+        <result column="user_email" property="userEmail" jdbcType="VARCHAR"/>
+        <result column="user_info" property="userInfo" jdbcType="VARCHAR"/>
+        <result column="head_img" property="headImg" jdbcType="BLOB"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="userRoleMap" type="cn.eaay.simple.dto.UserDto" extends="userMap">
+        <!-- role相关属性 -->
+        <result column="role_id" property="role.id"/>
+        <result column="role_name" property="role.roleName"/>
+        <result column="enabled" property="role.enabled"/>
+        <result column="create_by" property="role.createBy"/>
+        <result column="role_create_time" property="role.createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="userRoleMapByAssociation" type="cn.eaay.simple.dto.UserDto" extends="userMap">
+        <association property="role" columnPrefix="role_" javaType="cn.eaay.simple.model.SysRole">
+            <result column="id" property="id"/>
+            <result column="role_name" property="roleName"/>
+            <result column="enabled" property="enabled"/>
+            <result column="create_by" property="createBy"/>
+            <result column="create_time" property="createTime"/>
+        </association>
+    </resultMap>
+
+    <!-- association可以引用ResultMap-->
+    <resultMap id="userRoleMapByAssociation2" type="cn.eaay.simple.dto.UserDto" extends="userMap">
+        <association property="role" columnPrefix="role_" javaType="cn.eaay.simple.dto.UserDto"
+                     resultMap="cn.eaay.simple.mapper.SysRoleMapper.roleMap"/>
+    </resultMap>
+
+    <!-- association标签的嵌套查询 -->
+    <resultMap id="userRoleMapSelect" type="cn.eaay.simple.dto.UserDto" extends="userMap">
+        <association property="role" column="{roleId=roleId}"
+                     select="cn.eaay.simple.mapper.SysRoleMapper.selectRoleById"/>
+    </resultMap>
+
+
+    <select id="selectById" resultMap="userMap" parameterType="long">
+        select *
+        from sys_user
+        where id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="cn.eaay.simple.model.SysUser">
+        select id,
+               user_name usErnAme,
+               user_password,
+               user_email,
+               user_info,
+               user_as_info,
+               head_img,
+               create_time
+        from sys_user
+    </select>
+
+    <select id="selectRolesByUserId" resultType="cn.eaay.simple.dto.RoleDto">
+        select r.id,
+               r.role_name,
+               r.enabled,
+               r.create_by,
+               r.create_time,
+               u.user_name as 'user.userName', u.user_email as 'user.userEmail'
+        from sys_user u
+                 inner join sys_user_role ur on u.id = ur.user_id
+                 inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId}
+    </select>
+
+    <!-- 别名自动映射 -->
+    <select id="selectUserAndRoleById" resultType="cn.eaay.simple.dto.UserDto">
+        select u.id,
+               u.user_name     userName,
+               u.user_password userPassword,
+               u.user_email    userEmail,
+               u.user_info     userInfo,
+               u.head_img      headImg,
+               u.create_time   createTime,
+               r.id 'role.id', r.role_name 'role.roleName', r.enabled 'role.enabled', r.create_by 'role.createBy', r.create_time 'role.createTime'
+        from sys_user u
+                 inner join sys_user_role ur on u.id = ur.user_id
+                 inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId}
+    </select>
+
+    <!-- ResultMap映射，注意：为了防止列名重复sql别名要与配置的column一致-->
+    <select id="selectUserAndRoleById2" resultMap="userRoleMap">
+        select u.id,
+               u.user_name,
+               u.user_password,
+               u.user_email,
+               u.user_info,
+               u.head_img,
+               u.create_time,
+               r.id          role_id,
+               r.role_name,
+               r.enabled     enabled,
+               r.create_by   create_by,
+               r.create_time role_create_time
+        from sys_user u
+                 inner join sys_user_role ur on u.id = ur.user_id
+                 inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId}
+    </select>
+
+    <!-- 使用ResultMap的association标签配置一对一映射 -->
+    <select id="selectUserAndRoleById3" resultMap="userRoleMapByAssociation2">
+        select u.id,
+               u.user_name,
+               u.user_password,
+               u.user_email,
+               u.user_info,
+               u.head_img,
+               u.create_time,
+               r.id,
+               r.role_name,
+               r.enabled     role_enabled,
+               r.create_by   role_create_by,
+               r.create_time role_create_time
+        from sys_user u
+                 inner join sys_user_role ur on u.id = ur.user_id
+                 inner join sys_role r on ur.role_id = r.id
+        where u.id = #{userId}
+    </select>
+
+    <!-- 嵌套查询 -->
+    <select id="selectUserAndRoleByIdSelect" resultMap="userRoleMapSelect">
+        select u.id,
+               u.user_name,
+               u.user_password,
+               u.user_email,
+               u.user_info,
+               u.head_img,
+               u.create_time,
+               ur.role_id roleId
+        from sys_user u
+                 inner join sys_user_role ur on u.id = ur.user_id
+        where u.id = #{userId}
+    </select>
+
+</mapper>
